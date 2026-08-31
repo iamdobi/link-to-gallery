@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { createImage } from "@/features/images";
-import { parseImageUrl } from "@/lib/url";
+import { saveCapture } from "@/features/capture";
 import { createSupabaseImageRepository } from "@/server/gallery/image-repository";
 import { getImagePage } from "@/server/gallery/query-repository";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -43,10 +42,10 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "A valid image URL is required." }, { status: 400 });
 
   try {
-    const result = await createImage(
+    const result = await saveCapture(
       createSupabaseImageRepository(supabase),
       user.id,
-      parseImageUrl(parsed.data.url),
+      parsed.data.url,
     );
     return NextResponse.json(result, { status: result.kind === "created" ? 201 : 200 });
   } catch (error) {

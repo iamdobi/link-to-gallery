@@ -6,6 +6,7 @@ import { FilterSheet } from "./filter-sheet";
 import { FullscreenViewer } from "./fullscreen-viewer";
 import { GalleryToolbar } from "./gallery-toolbar";
 import { BatchActionBar, type ClientBatchAction, type ClientBatchResult } from "./batch-action-bar";
+import { AddUrlDialog } from "./add-url-dialog";
 import { FolderPickerSheet } from "./folder-picker-sheet";
 import { ManagementGallery } from "./management-gallery";
 import { MasonryGallery } from "./masonry-gallery";
@@ -40,6 +41,7 @@ export function GalleryShell({ initialPage, folders, tags }: GalleryShellProps) 
   const gallery = useGalleryState({ initialPage });
   const { appendPage, filters, items, nextCursor, replacePage, saveScrollPosition, scrollY, selectedIds, setFilters, setSelection, toggleSelection } = gallery;
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [addUrlOpen, setAddUrlOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"viewer" | "management">("viewer");
   const [folderPickerAction, setFolderPickerAction] = useState<"folder_add" | "folder_remove" | null>(null);
@@ -138,7 +140,7 @@ export function GalleryShell({ initialPage, folders, tags }: GalleryShellProps) 
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
-      <GalleryToolbar mode={mode} onModeChange={changeMode} onOpenFilters={() => setFiltersOpen(true)} onSearchChange={(search) => setFilters({ search })} onViewChange={(view) => setFilters({ view })} search={filters.search} view={filters.view} />
+      <GalleryToolbar mode={mode} onModeChange={changeMode} onOpenAddUrl={() => setAddUrlOpen(true)} onOpenFilters={() => setFiltersOpen(true)} onSearchChange={(search) => setFilters({ search })} onViewChange={(view) => setFilters({ view })} search={filters.search} view={filters.view} />
       <section className={`mx-auto max-w-[1800px] px-4 py-5 sm:px-6 ${mode === "management" ? "pb-24" : ""}`}>
         {mode === "management"
           ? <ManagementGallery images={items} onLoadStatus={updateLoadStatus} onToggleSelection={toggleSelection} selectedIds={selectedIds} view={filters.view} />
@@ -156,6 +158,7 @@ export function GalleryShell({ initialPage, folders, tags }: GalleryShellProps) 
         )}
       </section>
       <FilterSheet filters={filters} folders={folders} onChange={setFilters} onClose={() => setFiltersOpen(false)} open={filtersOpen} tags={tagOptions} />
+      <AddUrlDialog onClose={() => setAddUrlOpen(false)} onSaved={() => loadPage(null, false)} open={addUrlOpen} />
       {folderPickerAction && <FolderPickerSheet action={folderPickerAction} folders={folders} onClose={() => setFolderPickerAction(null)} onConfirm={(folderIds) => { const action = folderPickerAction; setFolderPickerAction(null); void applyWithSelection(action, folderIds); }} open />}
       {tagPickerAction && <TagPickerSheet action={tagPickerAction} onClose={() => setTagPickerAction(null)} onConfirm={(tagIds) => { const action = tagPickerAction; setTagPickerAction(null); void applyWithSelection(action, tagIds); }} onCreate={createTag} open tags={tagOptions} />}
       <TrashDialog count={selectedIds.size} onClose={() => setPendingTrashAction(null)} onConfirm={() => { const action = pendingTrashAction; setPendingTrashAction(null); if (action) void applyWithSelection(action); }} open={pendingTrashAction !== null} permanent={pendingTrashAction === "permanent_delete"} />
