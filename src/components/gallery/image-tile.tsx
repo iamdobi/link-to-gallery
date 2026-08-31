@@ -30,6 +30,7 @@ export function ImageTile({ image, mode, compact = false, isSelected = false, on
       <button
         aria-label={mode === "management" ? "Toggle image selection" : "Open image"}
         className={`relative block w-full overflow-hidden bg-slate-100 text-left ${compact ? "aspect-square" : ""}`}
+        id={`gallery-image-${image.id}`}
         onClick={() => mode === "management" ? onToggleSelection?.(image.id) : onOpen?.(image.id)}
         type="button"
       >

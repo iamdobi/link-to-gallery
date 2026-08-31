@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { FilterSheet } from "./filter-sheet";
+import { FullscreenViewer } from "./fullscreen-viewer";
 import { GalleryToolbar } from "./gallery-toolbar";
 import { MasonryGallery } from "./masonry-gallery";
 import { SquareGallery } from "./square-gallery";
@@ -32,9 +33,11 @@ function filterSearchParams(filters: Omit<GalleryFilters, "view">, cursor: strin
 
 export function GalleryShell({ initialPage, folders, tags }: GalleryShellProps) {
   const gallery = useGalleryState({ initialPage });
-  const { appendPage, filters, items, nextCursor, replacePage, setFilters } = gallery;
+  const { appendPage, filters, items, nextCursor, replacePage, saveScrollPosition, scrollY, setFilters } = gallery;
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeImageId, setActiveImageId] = useState<string | null>(null);
+  const [returnTarget, setReturnTarget] = useState<{ imageId: string; scrollY: number } | null>(null);
   const initialLoad = useRef(true);
   const filterKey = useMemo(() => JSON.stringify({ ...filters, view: undefined }), [filters]);
   const dataFilters = useMemo(() => JSON.parse(filterKey) as Omit<GalleryFilters, "view">, [filterKey]);
@@ -69,8 +72,20 @@ export function GalleryShell({ initialPage, folders, tags }: GalleryShellProps) 
   };
 
   const openImage = (imageId: string) => {
-    const image = items.find((item) => item.id === imageId);
-    if (image) window.open(image.originalUrl, "_blank", "noopener,noreferrer");
+    const savedScrollY = window.scrollY;
+    saveScrollPosition(savedScrollY);
+    setReturnTarget({ imageId, scrollY: savedScrollY });
+    setActiveImageId(imageId);
+  };
+
+  const dismissFullscreen = () => {
+    setActiveImageId(null);
+    const target = returnTarget;
+    window.requestAnimationFrame(() => {
+      const restoreScrollY = target?.scrollY ?? scrollY;
+      window.scrollTo({ top: restoreScrollY });
+      document.getElementById(`gallery-image-${target?.imageId}`)?.focus();
+    });
   };
 
   return (
@@ -91,6 +106,7 @@ export function GalleryShell({ initialPage, folders, tags }: GalleryShellProps) 
         )}
       </section>
       <FilterSheet filters={filters} folders={folders} onChange={setFilters} onClose={() => setFiltersOpen(false)} open={filtersOpen} tags={tags} />
+      {activeImageId && <FullscreenViewer imageId={activeImageId} images={items} onDismiss={dismissFullscreen} onNavigate={setActiveImageId} />}
     </main>
   );
 }
