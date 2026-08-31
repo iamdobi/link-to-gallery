@@ -8,7 +8,10 @@ import type { ImageLoadStatus } from "@/features/images";
 
 type SquareGalleryProps = {
   images: GalleryImage[];
+  mode?: "viewer" | "management";
+  selectedIds?: Set<string>;
   onOpen: (id: string) => void;
+  onToggleSelection?: (id: string) => void;
   onLoadStatus: (id: string, status: ImageLoadStatus) => void;
 };
 
@@ -23,7 +26,7 @@ function useColumnCount() {
   return columns;
 }
 
-export function SquareGallery({ images, onOpen, onLoadStatus }: SquareGalleryProps) {
+export function SquareGallery({ images, mode = "viewer", selectedIds, onOpen, onToggleSelection, onLoadStatus }: SquareGalleryProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const columns = useColumnCount();
   const rowCount = Math.ceil(images.length / columns);
@@ -44,7 +47,7 @@ export function SquareGallery({ images, onOpen, onLoadStatus }: SquareGalleryPro
             <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6" key={virtualRow.key} style={{ position: "absolute", top: 0, transform: `translateY(${virtualRow.start}px)` }}>
               {rowImages.map((image) => (
                 <div className="aspect-square overflow-hidden" key={image.id}>
-                  <ImageTile compact image={image} mode="viewer" onLoadStatus={onLoadStatus} onOpen={onOpen} />
+                  <ImageTile compact image={image} isSelected={selectedIds?.has(image.id)} mode={mode} onLoadStatus={onLoadStatus} onOpen={onOpen} onToggleSelection={onToggleSelection} />
                 </div>
               ))}
             </div>

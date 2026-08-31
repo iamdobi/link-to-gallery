@@ -4,7 +4,7 @@ import { applyBatchOperation, createSupabaseBatchRepository } from "@/server/gal
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const batchOperationSchema = z.object({
-  action: z.enum(["folder_add", "folder_remove", "tag_add", "tag_remove", "trash", "restore"]),
+  action: z.enum(["folder_add", "folder_remove", "tag_add", "tag_remove", "trash", "restore", "permanent_delete"]),
   imageIds: z.array(z.string().uuid()).min(1).max(100),
   targetIds: z.array(z.string().uuid()).max(50).optional(),
 });

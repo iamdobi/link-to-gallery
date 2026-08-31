@@ -9,6 +9,7 @@ type GalleryAction =
   | { type: "append-page"; page: GalleryPage }
   | { type: "toggle-selection"; imageId: string }
   | { type: "clear-selection" }
+  | { type: "set-selection"; imageIds: Set<string> }
   | { type: "set-scroll"; scrollY: number }
   | { type: "update-image"; image: GalleryImage };
 
@@ -28,6 +29,8 @@ function reducer(state: GalleryState, action: GalleryAction): GalleryState {
     }
     case "clear-selection":
       return { ...state, selectedIds: new Set() };
+    case "set-selection":
+      return { ...state, selectedIds: new Set(action.imageIds) };
     case "set-scroll":
       return { ...state, scrollY: action.scrollY };
     case "update-image":
@@ -60,6 +63,7 @@ export function useGalleryState(options: UseGalleryStateOptions = {}) {
   const appendPage = useCallback((page: GalleryPage) => dispatch({ type: "append-page", page }), []);
   const toggleSelection = useCallback((imageId: string) => dispatch({ type: "toggle-selection", imageId }), []);
   const clearSelection = useCallback(() => dispatch({ type: "clear-selection" }), []);
+  const setSelection = useCallback((imageIds: Set<string>) => dispatch({ type: "set-selection", imageIds }), []);
   const saveScrollPosition = useCallback((scrollY: number) => dispatch({ type: "set-scroll", scrollY }), []);
   const updateImage = useCallback((image: GalleryImage) => dispatch({ type: "update-image", image }), []);
 
@@ -70,6 +74,7 @@ export function useGalleryState(options: UseGalleryStateOptions = {}) {
     appendPage,
     toggleSelection,
     clearSelection,
+    setSelection,
     saveScrollPosition,
     updateImage,
   };

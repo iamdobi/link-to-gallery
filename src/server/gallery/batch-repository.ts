@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type BatchAction = "folder_add" | "folder_remove" | "tag_add" | "tag_remove" | "trash" | "restore";
+export type BatchAction = "folder_add" | "folder_remove" | "tag_add" | "tag_remove" | "trash" | "restore" | "permanent_delete";
 
 export type BatchOperationInput = {
   action: BatchAction;
@@ -129,6 +129,16 @@ export function createSupabaseBatchRepository(supabase: SupabaseClient): BatchRe
           .delete()
           .eq("image_id", imageId)
           .in("tag_id", targetIds);
+        if (error) throw new Error(error.message);
+        return;
+      }
+
+      if (input.action === "permanent_delete") {
+        const { error } = await supabase
+          .from("images")
+          .delete()
+          .eq("owner_id", ownerId)
+          .eq("id", imageId);
         if (error) throw new Error(error.message);
         return;
       }
