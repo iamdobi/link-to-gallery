@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sheet } from "@/components/ui/sheet";
+import { BookmarkletInstall } from "./bookmarklet-install";
 
 type AddUrlDialogProps = {
   open: boolean;
@@ -52,6 +53,7 @@ export function AddUrlDialog({ open, onClose, onSaved }: AddUrlDialogProps) {
         {result && "kind" in result && <p aria-live="polite" className="text-sm text-slate-700">{result.kind === "created" ? "Image saved to Inbox." : "This image is already saved."}</p>}
         {result && "error" in result && <p aria-live="polite" className="text-sm text-rose-700">{result.error}</p>}
       </form>
+      <BookmarkletInstall />
     </Sheet>
   );
 }
