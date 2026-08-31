@@ -56,14 +56,21 @@ export function useGalleryState(options: UseGalleryStateOptions = {}) {
     dispatch({ type: "filters", filters: { ...state.filters, ...updates } });
   }, [state.filters]);
 
+  const replacePage = useCallback((page: GalleryPage) => dispatch({ type: "replace-page", page }), []);
+  const appendPage = useCallback((page: GalleryPage) => dispatch({ type: "append-page", page }), []);
+  const toggleSelection = useCallback((imageId: string) => dispatch({ type: "toggle-selection", imageId }), []);
+  const clearSelection = useCallback(() => dispatch({ type: "clear-selection" }), []);
+  const saveScrollPosition = useCallback((scrollY: number) => dispatch({ type: "set-scroll", scrollY }), []);
+  const updateImage = useCallback((image: GalleryImage) => dispatch({ type: "update-image", image }), []);
+
   return {
     ...state,
     setFilters,
-    replacePage: (page: GalleryPage) => dispatch({ type: "replace-page", page }),
-    appendPage: (page: GalleryPage) => dispatch({ type: "append-page", page }),
-    toggleSelection: (imageId: string) => dispatch({ type: "toggle-selection", imageId }),
-    clearSelection: () => dispatch({ type: "clear-selection" }),
-    saveScrollPosition: (scrollY: number) => dispatch({ type: "set-scroll", scrollY }),
-    updateImage: (image: GalleryImage) => dispatch({ type: "update-image", image }),
+    replacePage,
+    appendPage,
+    toggleSelection,
+    clearSelection,
+    saveScrollPosition,
+    updateImage,
   };
 }

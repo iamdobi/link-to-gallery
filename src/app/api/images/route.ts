@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { createImage, listImages } from "@/features/images";
+import { createImage } from "@/features/images";
 import { parseImageUrl } from "@/lib/url";
 import { createSupabaseImageRepository } from "@/server/gallery/image-repository";
+import { getImagePage } from "@/server/gallery/query-repository";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const createImageSchema = z.object({
@@ -19,9 +20,17 @@ export async function GET(request: NextRequest) {
   const { supabase, user } = await getAuthenticatedClient();
   if (!user) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-  const requestedLimit = Number(request.nextUrl.searchParams.get("limit"));
-  const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 48) : 48;
-  const page = await listImages(createSupabaseImageRepository(supabase), user.id, limit);
+  const params = request.nextUrl.searchParams;
+  const loadStatus = params.get("loadStatus");
+  const page = await getImagePage(supabase, user.id, {
+    search: params.get("search") ?? "",
+    folderId: params.get("folderId"),
+    tagIds: params.getAll("tagId"),
+    tagMode: params.get("tagMode") === "all" ? "all" : "any",
+    inboxOnly: params.get("inboxOnly") === "true",
+    loadStatus: loadStatus === "available" || loadStatus === "broken" ? loadStatus : "all",
+    trashOnly: params.get("trashOnly") === "true",
+  }, params.get("cursor"));
   return NextResponse.json(page);
 }
 
