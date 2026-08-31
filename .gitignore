@@ -37,3 +37,6 @@ next-env.d.ts
 
 # Brainstorming companion sessions
 /.superpowers
+
+# Local Git worktrees
+/.worktrees
