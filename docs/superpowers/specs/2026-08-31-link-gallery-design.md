@@ -15,6 +15,18 @@ The initial release is for one approved personal Google account, but the authori
 
 Vercel's public production URL can be visited, but only an explicitly approved Google email can create an auth user or read data. A Supabase Before User Created hook checks the email allowlist before `auth.users` insertion. RLS also scopes every application row to the signed-in owner.
 
+## Maintainability and Module Boundaries
+
+The app is organized by domain responsibility rather than by page size or a single shared utilities bucket.
+
+- **Route layer:** App Router pages and route handlers compose feature modules, authenticate the request, and translate HTTP input/output. They do not contain SQL, URL normalization, gallery selection state, or gesture recognition.
+- **Feature layer:** `images`, `folders`, `tags`, `gallery`, and `capture` each own their public types, client state, domain rules, and feature components. Another feature imports only the target feature's public `index.ts` exports, never its internal files.
+- **Server layer:** Focused repositories encapsulate Supabase queries and mutations. Image, folder, tag, batch-operation, and gallery-query repositories have separate contracts, so a later UI or API can reuse them without duplicating rules.
+- **Shared layer:** `src/lib` contains only framework-independent helpers such as URL fingerprints and gesture classification. Reusable visual primitives live in `components/ui`; gallery-specific components do not become generic components prematurely.
+- **Database layer:** Each migration is additive and owns one coherent schema change. RLS policies and database functions remain close to the tables they protect. UI code never reaches tables through an untyped or service-role client.
+
+Public contracts use explicit TypeScript input/output types and are covered by tests at the module boundary. Components receive data and callbacks rather than reading unrelated global state. A module should be split when it owns more than one of: persistence, domain transformation, interaction state, and visual presentation.
+
 ## Scope
 
 ### Included
