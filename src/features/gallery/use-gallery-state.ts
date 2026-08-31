@@ -13,10 +13,26 @@ type GalleryAction =
   | { type: "set-scroll"; scrollY: number }
   | { type: "update-image"; image: GalleryImage };
 
+function dataFiltersChanged(current: GalleryFilters, next: GalleryFilters): boolean {
+  return current.search !== next.search
+    || current.folderId !== next.folderId
+    || current.tagMode !== next.tagMode
+    || current.inboxOnly !== next.inboxOnly
+    || current.loadStatus !== next.loadStatus
+    || current.trashOnly !== next.trashOnly
+    || current.tagIds.length !== next.tagIds.length
+    || current.tagIds.some((tagId, index) => tagId !== next.tagIds[index]);
+}
+
 function reducer(state: GalleryState, action: GalleryAction): GalleryState {
   switch (action.type) {
-    case "filters":
+    case "filters": {
+      if (!dataFiltersChanged(state.filters, action.filters)) {
+        return { ...state, filters: action.filters };
+      }
+
       return { ...state, filters: action.filters, items: [], nextCursor: null, selectedIds: new Set() };
+    }
     case "replace-page":
       return { ...state, items: action.page.items, nextCursor: action.page.nextCursor };
     case "append-page":
