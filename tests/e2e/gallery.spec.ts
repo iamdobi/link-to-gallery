@@ -18,6 +18,17 @@ test("redirects an anonymous gallery visit to the private login page", async ({ 
   await context.close();
 });
 
+test("opens the mobile gallery menu and signs out", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(galleryUrl());
+
+  await page.getByRole("button", { name: "Open gallery menu" }).click();
+  await expect(page.getByRole("dialog", { name: "Gallery menu" })).toBeVisible();
+  await page.getByRole("button", { name: "Log out" }).click();
+
+  await expect(page).toHaveURL(/\/login$/);
+});
+
 test("saves a pasted URL into Inbox and reports an active duplicate", async ({ page }) => {
   const imageUrl = "https://images.example/e2e-inbox.jpg";
   await page.goto(galleryUrl());
