@@ -3,7 +3,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { Copy } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
-import { buildBookmarklet } from "@/lib/bookmarklet";
+import { getBookmarkletForBrowser } from "@/lib/bookmarklet";
 
 export function BookmarkletInstall() {
   const origin = useSyncExternalStore(
@@ -14,7 +14,9 @@ export function BookmarkletInstall() {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
 
-  const bookmarklet = origin ? buildBookmarklet(origin) : "";
+  const bookmarklet = origin
+    ? getBookmarkletForBrowser(origin, navigator.userAgent, navigator.maxTouchPoints)
+    : "";
 
   const copy = async () => {
     setCopied(false);

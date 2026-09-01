@@ -2,9 +2,31 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, "");
 }
 
-export function buildBookmarklet(appOrigin: string): string {
+export function buildBookmarkletRunner(appOrigin: string): string {
   const captureBase = JSON.stringify(`${trimTrailingSlash(appOrigin)}/capture?url=`);
-  const script = `(()=>{const captureBase=${captureBase};const openCapture=(url)=>window.open(captureBase+encodeURIComponent(url),"_blank","noopener");if(document.contentType.startsWith("image/")){openCapture(location.href);return;}const existing=document.getElementById("link-gallery-capture-picker");if(existing){existing.remove();return;}const candidates=Array.from(document.images).map((image)=>{const rect=image.getBoundingClientRect();return{src:image.currentSrc||image.src,width:rect.width,height:rect.height};}).filter((image)=>image.src&&image.width>=80&&image.height>=80);if(!candidates.length){window.alert("No visible images found on this page.");return;}const overlay=document.createElement("div");overlay.id="link-gallery-capture-picker";overlay.setAttribute("role","dialog");overlay.setAttribute("aria-label","Choose an image to save");overlay.style.cssText="position:fixed;inset:0;z-index:2147483647;overflow:auto;background:rgba(15,23,42,.86);padding:24px;box-sizing:border-box;";const close=document.createElement("button");close.type="button";close.textContent="Close";close.style.cssText="position:fixed;top:16px;right:16px;min-height:44px;padding:0 16px;border:0;background:#fff;color:#111827;font:600 14px sans-serif;cursor:pointer;";close.onclick=()=>overlay.remove();const grid=document.createElement("div");grid.style.cssText="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;max-width:1200px;margin:40px auto;";candidates.forEach((candidate,index)=>{const button=document.createElement("button");button.type="button";button.setAttribute("aria-label","Save image candidate "+(index+1));button.style.cssText="display:block;padding:0;border:2px solid transparent;background:#fff;cursor:pointer;";const preview=document.createElement("img");preview.src=candidate.src;preview.alt="";preview.style.cssText="display:block;width:100%;aspect-ratio:1;object-fit:cover;";button.append(preview);button.onclick=()=>{openCapture(candidate.src);overlay.remove();};grid.append(button);});overlay.append(close,grid);document.body.append(overlay);})()`;
+  return `(()=>{const captureBase=${captureBase};const openCapture=(url)=>window.open(captureBase+encodeURIComponent(url),"_blank","noopener");if(document.contentType.startsWith("image/")){openCapture(location.href);return;}const existing=document.getElementById("link-gallery-capture-picker");if(existing){existing.remove();return;}const candidates=Array.from(document.images).map((image)=>{const rect=image.getBoundingClientRect();return{src:image.currentSrc||image.src,width:rect.width,height:rect.height};}).filter((image)=>image.src&&image.width>=80&&image.height>=80);if(!candidates.length){window.alert("No visible images found on this page.");return;}const overlay=document.createElement("div");overlay.id="link-gallery-capture-picker";overlay.setAttribute("role","dialog");overlay.setAttribute("aria-label","Choose an image to save");overlay.style.cssText="position:fixed;inset:0;z-index:2147483647;overflow:auto;background:rgba(15,23,42,.86);padding:24px;box-sizing:border-box;";const close=document.createElement("button");close.type="button";close.textContent="Close";close.style.cssText="position:fixed;top:16px;right:16px;min-height:44px;padding:0 16px;border:0;background:#fff;color:#111827;font:600 14px sans-serif;cursor:pointer;";close.onclick=()=>overlay.remove();const grid=document.createElement("div");grid.style.cssText="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;max-width:1200px;margin:40px auto;";candidates.forEach((candidate,index)=>{const button=document.createElement("button");button.type="button";button.setAttribute("aria-label","Save image candidate "+(index+1));button.style.cssText="display:block;padding:0;border:2px solid transparent;background:#fff;cursor:pointer;";const preview=document.createElement("img");preview.src=candidate.src;preview.alt="";preview.style.cssText="display:block;width:100%;aspect-ratio:1;object-fit:cover;";button.append(preview);button.onclick=()=>{openCapture(candidate.src);overlay.remove();};grid.append(button);});overlay.append(close,grid);document.body.append(overlay);})()`;
+}
 
-  return `javascript:${script}`;
+export function buildBookmarklet(appOrigin: string): string {
+  return `javascript:${buildBookmarkletRunner(appOrigin)}`;
+}
+
+export function buildCompactBookmarklet(appOrigin: string): string {
+  const source = JSON.stringify(`${trimTrailingSlash(appOrigin)}/bookmarklet.js`);
+  return `javascript:(()=>{const s=document.createElement("script");s.dataset.linkGalleryBookmarklet="";s.src=${source};(document.head||document.documentElement).append(s)})()`;
+}
+
+function isIOSBrowser(userAgent: string, maxTouchPoints: number): boolean {
+  return /iPad|iPhone|iPod/.test(userAgent)
+    || (userAgent.includes("Macintosh") && maxTouchPoints > 1);
+}
+
+export function getBookmarkletForBrowser(
+  appOrigin: string,
+  userAgent: string,
+  maxTouchPoints = 0,
+): string {
+  return isIOSBrowser(userAgent, maxTouchPoints)
+    ? buildCompactBookmarklet(appOrigin)
+    : buildBookmarklet(appOrigin);
 }
