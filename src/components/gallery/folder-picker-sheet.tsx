@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Sheet } from "@/components/ui/sheet";
 import type { FolderRecord } from "@/features/folders";
 
@@ -30,10 +30,6 @@ export function FolderPickerSheet({ open, folders, action, onClose, onConfirm, c
     return [...folders].sort((a, b) => folderDepth(a, byId) - folderDepth(b, byId) || a.name.localeCompare(b.name));
   }, [folders]);
   const byId = useMemo(() => new Map(folders.map((folder) => [folder.id, folder])), [folders]);
-
-  useEffect(() => {
-    if (!open) setSelectedIds(new Set());
-  }, [open]);
 
   const toggle = (folderId: string) => setSelectedIds((current) => {
     const next = new Set(current);

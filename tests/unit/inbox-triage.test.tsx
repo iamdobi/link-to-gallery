@@ -38,11 +38,11 @@ function json(body: unknown) {
 
 const props = {
   folders: [{ id: "folder-1", name: "Reference", parentId: null, sortOrder: 0, createdAt: "2026-09-02T00:00:00Z", updatedAt: "2026-09-02T00:00:00Z" }],
+  initialPage: { items: images, nextCursor: null },
   inboxCount: 2,
-  onAssigned: vi.fn().mockResolvedValue(undefined),
+  onAssigned: vi.fn(),
   onClose: vi.fn(),
   onCreateTag: vi.fn(),
-  open: true,
   tags: [],
 };
 
@@ -53,12 +53,9 @@ describe("InboxTriage", () => {
   });
 
   it("moves to the next Inbox image after a successful folder assignment", async () => {
-    const fetchMock = vi.fn(async (input: string) => {
-      if (input.startsWith("/api/images?")) return json({ items: images, nextCursor: null });
-      return json({ succeededIds: ["image-1"], failed: [] });
-    });
+    const fetchMock = vi.fn(async () => json({ succeededIds: ["image-1"], failed: [] }));
     vi.stubGlobal("fetch", fetchMock);
-    const onAssigned = vi.fn().mockResolvedValue(undefined);
+    const onAssigned = vi.fn();
     render(<InboxTriage {...props} onAssigned={onAssigned} />);
 
     await screen.findByText(images[0].originalUrl);
@@ -73,10 +70,7 @@ describe("InboxTriage", () => {
   });
 
   it("keeps the current image visible after a failed assignment", async () => {
-    vi.stubGlobal("fetch", vi.fn(async (input: string) => {
-      if (input.startsWith("/api/images?")) return json({ items: images, nextCursor: null });
-      return json({ succeededIds: [], failed: [{ id: "image-1", message: "Update failed." }] });
-    }));
+    vi.stubGlobal("fetch", vi.fn(async () => json({ succeededIds: [], failed: [{ id: "image-1", message: "Update failed." }] })));
     render(<InboxTriage {...props} />);
 
     await screen.findByText(images[0].originalUrl);

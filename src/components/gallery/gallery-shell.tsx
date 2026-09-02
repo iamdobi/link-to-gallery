@@ -53,7 +53,7 @@ export function GalleryShell({ initialPage, initialCounts, folders, tags }: Gall
   const [batchSummary, setBatchSummary] = useState<string | null>(null);
   const [activeImageId, setActiveImageId] = useState<string | null>(null);
   const [counts, setCounts] = useState(initialCounts);
-  const [inboxTriageOpen, setInboxTriageOpen] = useState(false);
+  const [inboxTriage, setInboxTriage] = useState<{ page: GalleryPage; error?: string } | null>(null);
   const [returnTarget, setReturnTarget] = useState<{ imageId: string; scrollY: number } | null>(null);
   const initialLoad = useRef(true);
   const filterKey = useMemo(() => JSON.stringify({ ...filters, view: undefined }), [filters]);
@@ -76,6 +76,20 @@ export function GalleryShell({ initialPage, initialCounts, folders, tags }: Gall
     const response = await fetch("/api/images/counts");
     if (response.ok) setCounts(await response.json() as GalleryCounts);
   }, []);
+
+  const openInboxTriage = async () => {
+    setActiveImageId(null);
+    try {
+      const response = await fetch("/api/images?inboxOnly=true");
+      if (!response.ok) throw new Error("Unable to load Inbox images.");
+      setInboxTriage({ page: await response.json() as GalleryPage });
+    } catch (error) {
+      setInboxTriage({
+        page: { items: [], nextCursor: null },
+        error: error instanceof Error ? error.message : "Unable to load Inbox images.",
+      });
+    }
+  };
 
   useEffect(() => {
     if (initialLoad.current) {
@@ -149,7 +163,7 @@ export function GalleryShell({ initialPage, initialCounts, folders, tags }: Gall
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
-      <GalleryToolbar counts={counts} mode={mode} onModeChange={changeMode} onOpenAddUrl={() => setAddUrlOpen(true)} onOpenFilters={() => setFiltersOpen(true)} onOpenInboxTriage={() => { setActiveImageId(null); setInboxTriageOpen(true); }} onSearchChange={(search) => setFilters({ search })} onViewChange={(view) => setFilters({ view })} search={filters.search} view={filters.view} />
+      <GalleryToolbar counts={counts} mode={mode} onModeChange={changeMode} onOpenAddUrl={() => setAddUrlOpen(true)} onOpenFilters={() => setFiltersOpen(true)} onOpenInboxTriage={() => void openInboxTriage()} onSearchChange={(search) => setFilters({ search })} onViewChange={(view) => setFilters({ view })} search={filters.search} view={filters.view} />
       <section className={`mx-auto max-w-[1800px] px-4 py-5 sm:px-6 ${mode === "management" ? "pb-24" : ""}`}>
         {mode === "management"
           ? <ManagementGallery images={items} onLoadStatus={updateLoadStatus} onToggleSelection={toggleSelection} selectedIds={selectedIds} view={filters.view} />
@@ -176,7 +190,7 @@ export function GalleryShell({ initialPage, initialCounts, folders, tags }: Gall
         <BatchActionBar apply={applyWithSelection} onConfirmPermanentDelete={() => setPendingTrashAction("permanent_delete")} onConfirmTrash={() => setPendingTrashAction("trash")} onOpenFolders={() => setFolderPickerAction("folder_add")} onOpenTags={() => setTagPickerAction("tag_add")} onRemoveFolders={() => setFolderPickerAction("folder_remove")} onRemoveTags={() => setTagPickerAction("tag_remove")} onSelectionChange={setSelection} selectedIds={selectedIds} trashOnly={filters.trashOnly} />
       </>}
       {activeImageId && mode === "viewer" && <FullscreenViewer imageId={activeImageId} images={items} onDismiss={dismissFullscreen} onNavigate={setActiveImageId} />}
-      <InboxTriage folders={folders} inboxCount={counts.inbox} onAssigned={async () => { await Promise.all([loadPage(null, false), refreshCounts()]); }} onClose={() => setInboxTriageOpen(false)} onCreateTag={createTag} open={inboxTriageOpen} tags={tagOptions} />
+      {inboxTriage && <InboxTriage folders={folders} inboxCount={counts.inbox} initialError={inboxTriage.error} initialPage={inboxTriage.page} onAssigned={() => { void Promise.all([loadPage(null, false), refreshCounts()]); }} onClose={() => setInboxTriage(null)} onCreateTag={createTag} tags={tagOptions} />}
     </main>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { FolderPlus, SkipForward, Tags, X } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { FolderPickerSheet } from "./folder-picker-sheet";
@@ -10,13 +10,14 @@ import type { FolderRecord } from "@/features/folders";
 import type { TagRecord } from "@/features/tags";
 
 type InboxTriageProps = {
-  open: boolean;
+  initialPage: GalleryPage;
+  initialError?: string;
   inboxCount: number;
   folders: FolderRecord[];
   tags: TagRecord[];
   onClose: () => void;
   onCreateTag: (name: string) => Promise<TagRecord | null>;
-  onAssigned: () => Promise<void>;
+  onAssigned: () => void;
 };
 
 type TriageAction = "folder_add" | "tag_add";
@@ -28,48 +29,33 @@ function inboxUrl(cursor: string | null): string {
   return `/api/images?${params.toString()}`;
 }
 
-export function InboxTriage({ open, inboxCount, folders, tags, onClose, onCreateTag, onAssigned }: InboxTriageProps) {
-  const [queue, setQueue] = useState<GalleryImage[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
+export function InboxTriage({ initialPage, initialError, inboxCount, folders, tags, onClose, onCreateTag, onAssigned }: InboxTriageProps) {
+  const [queue, setQueue] = useState<GalleryImage[]>(initialPage.items);
+  const [nextCursor, setNextCursor] = useState<string | null>(initialPage.nextCursor);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError ?? null);
   const [pickerAction, setPickerAction] = useState<TriageAction | null>(null);
 
-  const loadInboxPage = useCallback(async (cursor: string | null) => {
+  const loadNextPage = async (cursor: string) => {
     setLoading(true);
     try {
       const response = await fetch(inboxUrl(cursor));
       if (!response.ok) throw new Error("Unable to load Inbox images.");
       const page = await response.json() as GalleryPage;
-      setQueue((current) => cursor ? [...current, ...page.items] : page.items);
+      setQueue((current) => [...current, ...page.items]);
       setNextCursor(page.nextCursor);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unable to load Inbox images.");
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    if (!open) {
-      setQueue([]);
-      setNextCursor(null);
-      setError(null);
-      setPickerAction(null);
-      return;
-    }
-    void loadInboxPage(null);
-  }, [loadInboxPage, open]);
-
-  useEffect(() => {
-    if (open && queue.length > 0 && queue.length <= 2 && nextCursor && !loading) {
-      void loadInboxPage(nextCursor);
-    }
-  }, [loadInboxPage, loading, nextCursor, open, queue.length]);
+  };
 
   const advance = () => {
+    const remaining = queue.slice(1);
     setError(null);
-    setQueue((current) => current.slice(1));
+    setQueue(remaining);
+    if (remaining.length <= 2 && nextCursor && !loading) void loadNextPage(nextCursor);
   };
 
   const assign = async (action: TriageAction, targetIds: string[]) => {
@@ -92,16 +78,13 @@ export function InboxTriage({ open, inboxCount, folders, tags, onClose, onCreate
       }
 
       setPickerAction(null);
-      setError(null);
-      setQueue((current) => current.slice(1));
-      await onAssigned();
+      advance();
+      onAssigned();
     } catch {
       setPickerAction(null);
       setError("Unable to organize image.");
     }
   };
-
-  if (!open) return null;
 
   const image = queue[0];
 
@@ -126,15 +109,15 @@ export function InboxTriage({ open, inboxCount, folders, tags, onClose, onCreate
           <a className="break-all text-xs text-slate-600 hover:text-emerald-700" href={image.originalUrl} rel="noreferrer" target="_blank">{image.originalUrl}</a>
           {error && <p aria-live="polite" className="text-sm text-rose-700">{error}</p>}
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <button className="min-h-12 border border-slate-300 bg-white px-4 text-sm font-medium text-slate-800 hover:border-slate-500" onClick={() => setPickerAction("folder_add")} type="button"><span className="inline-flex items-center gap-2"><FolderPlus size={18} />Add folders</span></button>
-            <button className="min-h-12 border border-slate-300 bg-white px-4 text-sm font-medium text-slate-800 hover:border-slate-500" onClick={() => setPickerAction("tag_add")} type="button"><span className="inline-flex items-center gap-2"><Tags size={18} />Add tags</span></button>
-            <button className="min-h-12 border border-slate-300 bg-white px-4 text-sm font-medium text-slate-800 hover:border-slate-500" onClick={advance} type="button"><span className="inline-flex items-center gap-2"><SkipForward size={18} />Skip</span></button>
+            <button className="min-h-12 border border-slate-300 bg-white px-4 text-sm font-medium text-slate-800 hover:border-slate-500 disabled:opacity-50" disabled={loading} onClick={() => setPickerAction("folder_add")} type="button"><span className="inline-flex items-center gap-2"><FolderPlus size={18} />Add folders</span></button>
+            <button className="min-h-12 border border-slate-300 bg-white px-4 text-sm font-medium text-slate-800 hover:border-slate-500 disabled:opacity-50" disabled={loading} onClick={() => setPickerAction("tag_add")} type="button"><span className="inline-flex items-center gap-2"><Tags size={18} />Add tags</span></button>
+            <button className="min-h-12 border border-slate-300 bg-white px-4 text-sm font-medium text-slate-800 hover:border-slate-500 disabled:opacity-50" disabled={loading} onClick={advance} type="button"><span className="inline-flex items-center gap-2"><SkipForward size={18} />Skip</span></button>
           </div>
         </>}
         {error && !image && <p aria-live="polite" className="text-center text-sm text-rose-700">{error}</p>}
       </div>
-      <FolderPickerSheet action="folder_add" confirmLabel="Organize and continue" folders={folders} onClose={() => setPickerAction(null)} onConfirm={(folderIds) => assign("folder_add", folderIds)} open={pickerAction === "folder_add"} />
-      <TagPickerSheet action="tag_add" confirmLabel="Organize and continue" onClose={() => setPickerAction(null)} onConfirm={(tagIds) => assign("tag_add", tagIds)} onCreate={onCreateTag} open={pickerAction === "tag_add"} tags={tags} />
+      {pickerAction === "folder_add" && <FolderPickerSheet action="folder_add" confirmLabel="Organize and continue" folders={folders} onClose={() => setPickerAction(null)} onConfirm={(folderIds) => assign("folder_add", folderIds)} open />}
+      {pickerAction === "tag_add" && <TagPickerSheet action="tag_add" confirmLabel="Organize and continue" onClose={() => setPickerAction(null)} onConfirm={(tagIds) => assign("tag_add", tagIds)} onCreate={onCreateTag} open tags={tags} />}
     </div>
   );
 }

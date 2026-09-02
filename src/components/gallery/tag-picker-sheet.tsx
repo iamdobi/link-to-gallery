@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Sheet } from "@/components/ui/sheet";
 import type { TagRecord } from "@/features/tags";
 
@@ -19,13 +19,6 @@ export function TagPickerSheet({ open, tags, action, onClose, onConfirm, onCreat
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const visibleTags = tags.filter((tag) => tag.normalizedName.includes(query.trim().toLowerCase()));
-
-  useEffect(() => {
-    if (!open) {
-      setSelectedIds(new Set());
-      setQuery("");
-    }
-  }, [open]);
 
   const toggle = (tagId: string) => setSelectedIds((current) => {
     const next = new Set(current);
