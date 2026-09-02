@@ -1,21 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Check, CheckSquare, Columns3, Eye, Grid2X2, LogOut, Menu, Plus, Search, SlidersHorizontal } from "lucide-react";
+import { Check, CheckSquare, Columns3, Eye, Grid2X2, Inbox, LogOut, Menu, Plus, Search, SlidersHorizontal } from "lucide-react";
 
 import { IconButton } from "@/components/ui/icon-button";
 import { Sheet } from "@/components/ui/sheet";
-import type { GalleryView } from "@/features/gallery";
+import type { GalleryCounts, GalleryView } from "@/features/gallery";
 
 type GalleryToolbarProps = {
   search: string;
   view: GalleryView;
   mode: "viewer" | "management";
+  counts: GalleryCounts;
   onSearchChange: (search: string) => void;
   onViewChange: (view: GalleryView) => void;
   onOpenFilters: () => void;
   onOpenAddUrl: () => void;
   onModeChange: (mode: "viewer" | "management") => void;
+  onOpenInboxTriage: () => void;
 };
 
 type SearchInputProps = Pick<GalleryToolbarProps, "search" | "onSearchChange"> & {
@@ -46,7 +48,7 @@ function MobileSignOut() {
   );
 }
 
-export function GalleryToolbar({ search, view, mode, onSearchChange, onViewChange, onOpenFilters, onOpenAddUrl, onModeChange }: GalleryToolbarProps) {
+export function GalleryToolbar({ search, view, mode, counts, onSearchChange, onViewChange, onOpenFilters, onOpenAddUrl, onModeChange, onOpenInboxTriage }: GalleryToolbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const nextMode = mode === "viewer" ? "management" : "viewer";
   const modeLabel = mode === "viewer" ? "Enter management mode" : "Return to viewer mode";
@@ -59,9 +61,13 @@ export function GalleryToolbar({ search, view, mode, onSearchChange, onViewChang
     <>
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto hidden min-h-16 max-w-[1800px] items-center gap-2 px-4 sm:flex sm:px-6">
-          <h1 className="mr-2 whitespace-nowrap text-lg font-semibold text-slate-950">Link Gallery</h1>
+          <div className="mr-2 whitespace-nowrap">
+            <h1 className="text-lg font-semibold text-slate-950">Link Gallery</h1>
+            <p className="text-xs text-slate-500"><span>{counts.active} images</span><span aria-hidden="true"> · </span><span>{counts.inbox} Inbox</span></p>
+          </div>
           <SearchInput onSearchChange={onSearchChange} search={search} />
           <IconButton label="Add image URL" onClick={onOpenAddUrl}><Plus size={18} /></IconButton>
+          <IconButton label="Organize Inbox" onClick={onOpenInboxTriage}><Inbox size={18} /></IconButton>
           <IconButton label="Open filters" onClick={onOpenFilters}><SlidersHorizontal size={18} /></IconButton>
           <IconButton label={modeLabel} onClick={() => onModeChange(nextMode)}>{mode === "viewer" ? <CheckSquare size={18} /> : <Eye size={18} />}</IconButton>
           <div aria-label="Gallery layout" className="flex border border-slate-300" role="group">
@@ -72,7 +78,10 @@ export function GalleryToolbar({ search, view, mode, onSearchChange, onViewChang
         </div>
         <div className="mx-auto px-4 sm:hidden">
           <div className="flex min-h-14 items-center justify-between">
-            <h1 className="text-lg font-semibold text-slate-950">Link Gallery</h1>
+            <div>
+              <h1 className="text-lg font-semibold text-slate-950">Link Gallery</h1>
+              <p className="text-xs text-slate-500"><span>{counts.active} images</span><span aria-hidden="true"> · </span><span>{counts.inbox} Inbox</span></p>
+            </div>
             <IconButton label="Open gallery menu" onClick={() => setMenuOpen(true)}><Menu size={20} /></IconButton>
           </div>
           <SearchInput className="block pb-3" onSearchChange={onSearchChange} search={search} />
@@ -82,6 +91,7 @@ export function GalleryToolbar({ search, view, mode, onSearchChange, onViewChang
         <div className="space-y-5">
           <div className="space-y-1">
             <button className="flex min-h-12 w-full items-center gap-3 border-b border-slate-200 px-1 text-left text-sm font-medium text-slate-800" onClick={() => closeThen(onOpenAddUrl)} type="button"><Plus size={18} />Add image URL</button>
+            <button className="flex min-h-12 w-full items-center gap-3 border-b border-slate-200 px-1 text-left text-sm font-medium text-slate-800" onClick={() => closeThen(onOpenInboxTriage)} type="button"><Inbox size={18} />Organize Inbox</button>
             <button className="flex min-h-12 w-full items-center gap-3 border-b border-slate-200 px-1 text-left text-sm font-medium text-slate-800" onClick={() => closeThen(onOpenFilters)} type="button"><SlidersHorizontal size={18} />Filters</button>
             <button className="flex min-h-12 w-full items-center gap-3 border-b border-slate-200 px-1 text-left text-sm font-medium text-slate-800" onClick={() => closeThen(() => onModeChange(nextMode))} type="button">{mode === "viewer" ? <CheckSquare size={18} /> : <Eye size={18} />}{modeLabel}</button>
           </div>

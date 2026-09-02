@@ -13,13 +13,14 @@ import { MasonryGallery } from "./masonry-gallery";
 import { SquareGallery } from "./square-gallery";
 import { TagPickerSheet } from "./tag-picker-sheet";
 import { TrashDialog } from "./trash-dialog";
-import { useGalleryState, type GalleryFilters, type GalleryPage } from "@/features/gallery";
+import { useGalleryState, type GalleryCounts, type GalleryFilters, type GalleryPage } from "@/features/gallery";
 import type { FolderRecord } from "@/features/folders";
 import type { ImageLoadStatus } from "@/features/images";
 import type { TagRecord } from "@/features/tags";
 
 type GalleryShellProps = {
   initialPage: GalleryPage;
+  initialCounts: GalleryCounts;
   folders: FolderRecord[];
   tags: TagRecord[];
 };
@@ -37,7 +38,7 @@ function filterSearchParams(filters: Omit<GalleryFilters, "view">, cursor: strin
   return params;
 }
 
-export function GalleryShell({ initialPage, folders, tags }: GalleryShellProps) {
+export function GalleryShell({ initialPage, initialCounts, folders, tags }: GalleryShellProps) {
   const gallery = useGalleryState({ initialPage });
   const { appendPage, filters, items, nextCursor, replacePage, saveScrollPosition, scrollY, selectedIds, setFilters, setSelection, toggleSelection } = gallery;
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -50,6 +51,7 @@ export function GalleryShell({ initialPage, folders, tags }: GalleryShellProps) 
   const [pendingTrashAction, setPendingTrashAction] = useState<"trash" | "permanent_delete" | null>(null);
   const [batchSummary, setBatchSummary] = useState<string | null>(null);
   const [activeImageId, setActiveImageId] = useState<string | null>(null);
+  const [counts, setCounts] = useState(initialCounts);
   const [returnTarget, setReturnTarget] = useState<{ imageId: string; scrollY: number } | null>(null);
   const initialLoad = useRef(true);
   const filterKey = useMemo(() => JSON.stringify({ ...filters, view: undefined }), [filters]);
@@ -67,6 +69,11 @@ export function GalleryShell({ initialPage, folders, tags }: GalleryShellProps) 
       setLoading(false);
     }
   }, [appendPage, dataFilters, replacePage]);
+
+  const refreshCounts = useCallback(async () => {
+    const response = await fetch("/api/images/counts");
+    if (response.ok) setCounts(await response.json() as GalleryCounts);
+  }, []);
 
   useEffect(() => {
     if (initialLoad.current) {
@@ -111,9 +118,9 @@ export function GalleryShell({ initialPage, folders, tags }: GalleryShellProps) 
       ? await response.json() as ClientBatchResult
       : { succeededIds: [], failed: [...selectedIds].map((id) => ({ id, message: "Unable to update image." })) };
     setBatchSummary(`${result.succeededIds.length} updated, ${result.failed.length} failed`);
-    if (response.ok) await loadPage(null, false);
+    if (response.ok) await Promise.all([loadPage(null, false), refreshCounts()]);
     return result;
-  }, [loadPage, selectedIds]);
+  }, [loadPage, refreshCounts, selectedIds]);
 
   const applyWithSelection = useCallback(async (action: ClientBatchAction, targetIds?: string[]) => {
     const result = await applyBatch(action, targetIds);
@@ -140,7 +147,7 @@ export function GalleryShell({ initialPage, folders, tags }: GalleryShellProps) 
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
-      <GalleryToolbar mode={mode} onModeChange={changeMode} onOpenAddUrl={() => setAddUrlOpen(true)} onOpenFilters={() => setFiltersOpen(true)} onSearchChange={(search) => setFilters({ search })} onViewChange={(view) => setFilters({ view })} search={filters.search} view={filters.view} />
+      <GalleryToolbar counts={counts} mode={mode} onModeChange={changeMode} onOpenAddUrl={() => setAddUrlOpen(true)} onOpenFilters={() => setFiltersOpen(true)} onOpenInboxTriage={() => undefined} onSearchChange={(search) => setFilters({ search })} onViewChange={(view) => setFilters({ view })} search={filters.search} view={filters.view} />
       <section className={`mx-auto max-w-[1800px] px-4 py-5 sm:px-6 ${mode === "management" ? "pb-24" : ""}`}>
         {mode === "management"
           ? <ManagementGallery images={items} onLoadStatus={updateLoadStatus} onToggleSelection={toggleSelection} selectedIds={selectedIds} view={filters.view} />
@@ -158,7 +165,7 @@ export function GalleryShell({ initialPage, folders, tags }: GalleryShellProps) 
         )}
       </section>
       <FilterSheet filters={filters} folders={folders} onChange={setFilters} onClose={() => setFiltersOpen(false)} open={filtersOpen} tags={tagOptions} />
-      <AddUrlDialog onClose={() => setAddUrlOpen(false)} onSaved={() => loadPage(null, false)} open={addUrlOpen} />
+      <AddUrlDialog onClose={() => setAddUrlOpen(false)} onSaved={async () => { await Promise.all([loadPage(null, false), refreshCounts()]); }} open={addUrlOpen} />
       {folderPickerAction && <FolderPickerSheet action={folderPickerAction} folders={folders} onClose={() => setFolderPickerAction(null)} onConfirm={(folderIds) => { const action = folderPickerAction; setFolderPickerAction(null); void applyWithSelection(action, folderIds); }} open />}
       {tagPickerAction && <TagPickerSheet action={tagPickerAction} onClose={() => setTagPickerAction(null)} onConfirm={(tagIds) => { const action = tagPickerAction; setTagPickerAction(null); void applyWithSelection(action, tagIds); }} onCreate={createTag} open tags={tagOptions} />}
       <TrashDialog count={selectedIds.size} onClose={() => setPendingTrashAction(null)} onConfirm={() => { const action = pendingTrashAction; setPendingTrashAction(null); if (action) void applyWithSelection(action); }} open={pendingTrashAction !== null} permanent={pendingTrashAction === "permanent_delete"} />
