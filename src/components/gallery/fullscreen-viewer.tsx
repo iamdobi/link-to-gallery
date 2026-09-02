@@ -32,11 +32,19 @@ export function FullscreenViewer({ imageId, images, onDismiss, onNavigate }: Ful
 
   const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!startPoint.current) return;
-    const gesture = classifyGesture(event.clientX - startPoint.current.x, event.clientY - startPoint.current.y);
+    const deltaX = event.clientX - startPoint.current.x;
+    const deltaY = event.clientY - startPoint.current.y;
+    const gesture = classifyGesture(deltaX, deltaY);
     startPoint.current = null;
     if (gesture === "dismiss") onDismiss();
     if (gesture === "previous" && index > 0) onNavigate(images[index - 1].id);
     if (gesture === "next" && index < images.length - 1) onNavigate(images[index + 1].id);
+    if (gesture !== "none" || Math.abs(deltaX) > 12 || Math.abs(deltaY) > 12) return;
+    if (event.target instanceof Element && event.target.closest("button")) return;
+
+    const third = event.currentTarget.clientWidth / 3;
+    if (event.clientX <= third && index > 0) onNavigate(images[index - 1].id);
+    if (event.clientX >= third * 2 && index < images.length - 1) onNavigate(images[index + 1].id);
   };
 
   return (
@@ -48,16 +56,16 @@ export function FullscreenViewer({ imageId, images, onDismiss, onNavigate }: Ful
       onPointerUp={handlePointerUp}
       role="dialog"
     >
-      <header className="flex min-h-14 items-center justify-between px-3 sm:px-5">
+      <header className="relative z-20 flex min-h-14 items-center justify-between px-3 sm:px-5">
         <p className="truncate pr-3 text-xs text-slate-300">{image.originalUrl}</p>
-        <IconButton className="border-slate-600 bg-slate-900 text-white hover:border-slate-400 hover:bg-slate-800" label="Close full screen viewer" onClick={onDismiss}><X size={20} /></IconButton>
+        <IconButton label="Close full screen viewer" onClick={onDismiss} size="touch" tone="overlay"><X size={20} /></IconButton>
       </header>
       <div className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-4 sm:px-16">
-        {index > 0 && <IconButton className="absolute left-3 z-10 border-slate-600 bg-slate-900/85 text-white hover:border-slate-400 hover:bg-slate-800" label="Previous image" onClick={() => onNavigate(images[index - 1].id)}><ChevronLeft size={22} /></IconButton>}
+        {index > 0 && <IconButton className="absolute left-3 top-1/2 z-20 -translate-y-1/2" label="Previous image" onClick={() => onNavigate(images[index - 1].id)} size="touch" tone="overlay"><ChevronLeft size={24} /></IconButton>}
         {/* The gallery intentionally displays the saved source URL without an image proxy. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img alt={image.note || "Saved image"} className="max-h-full max-w-full select-none object-contain" draggable="false" src={image.originalUrl} />
-        {index < images.length - 1 && <IconButton className="absolute right-3 z-10 border-slate-600 bg-slate-900/85 text-white hover:border-slate-400 hover:bg-slate-800" label="Next image" onClick={() => onNavigate(images[index + 1].id)}><ChevronRight size={22} /></IconButton>}
+        {index < images.length - 1 && <IconButton className="absolute right-3 top-1/2 z-20 -translate-y-1/2" label="Next image" onClick={() => onNavigate(images[index + 1].id)} size="touch" tone="overlay"><ChevronRight size={24} /></IconButton>}
       </div>
       {image.note && <p className="px-5 pb-5 text-sm text-slate-200">{image.note}</p>}
     </div>
