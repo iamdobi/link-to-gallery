@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sheet } from "@/components/ui/sheet";
 import type { TagRecord } from "@/features/tags";
 
@@ -9,15 +9,23 @@ type TagPickerSheetProps = {
   tags: TagRecord[];
   action: "tag_add" | "tag_remove";
   onClose: () => void;
-  onConfirm: (tagIds: string[]) => void;
+  onConfirm: (tagIds: string[]) => void | Promise<void>;
   onCreate: (name: string) => Promise<TagRecord | null>;
+  confirmLabel?: string;
 };
 
-export function TagPickerSheet({ open, tags, action, onClose, onConfirm, onCreate }: TagPickerSheetProps) {
+export function TagPickerSheet({ open, tags, action, onClose, onConfirm, onCreate, confirmLabel }: TagPickerSheetProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const visibleTags = tags.filter((tag) => tag.normalizedName.includes(query.trim().toLowerCase()));
+
+  useEffect(() => {
+    if (!open) {
+      setSelectedIds(new Set());
+      setQuery("");
+    }
+  }, [open]);
 
   const toggle = (tagId: string) => setSelectedIds((current) => {
     const next = new Set(current);
@@ -45,7 +53,7 @@ export function TagPickerSheet({ open, tags, action, onClose, onConfirm, onCreat
           {visibleTags.map((tag) => <label className="flex min-h-11 items-center gap-3 text-sm text-slate-800" key={tag.id}><input checked={selectedIds.has(tag.id)} onChange={() => toggle(tag.id)} type="checkbox" />{tag.name}</label>)}
         </div>
       </div>
-      <button className="mt-6 min-h-11 w-full bg-slate-900 px-4 text-sm font-medium text-white disabled:opacity-50" disabled={!selectedIds.size} onClick={() => onConfirm([...selectedIds])} type="button">{action === "tag_add" ? "Add to selected images" : "Remove from selected images"}</button>
+      <button className="mt-6 min-h-11 w-full bg-slate-900 px-4 text-sm font-medium text-white disabled:opacity-50" disabled={!selectedIds.size} onClick={() => void onConfirm([...selectedIds])} type="button">{confirmLabel ?? (action === "tag_add" ? "Add to selected images" : "Remove from selected images")}</button>
     </Sheet>
   );
 }

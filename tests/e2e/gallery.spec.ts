@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { galleryUrl, getE2eSettings, resetOwnerGallery } from "./support/gallery-fixtures";
+import { galleryUrl, getE2eSettings, resetOwnerGallery, seedFolders, seedImages } from "./support/gallery-fixtures";
 
 const settings = getE2eSettings();
 test.skip(!settings, "Set the E2E gallery environment before running authenticated acceptance tests.");
@@ -45,4 +45,23 @@ test("saves a pasted URL into Inbox and reports an active duplicate", async ({ p
   await page.getByRole("button", { name: "Open filters" }).click();
   await page.getByRole("checkbox", { name: "Inbox only" }).check();
   await expect(page.getByRole("link", { name: imageUrl })).toBeVisible();
+});
+
+test("organizes an Inbox image and advances to the next image", async ({ page }) => {
+  const [first, second] = await seedImages([
+    { originalUrl: "https://images.example/e2e-triage-first.jpg" },
+    { originalUrl: "https://images.example/e2e-triage-second.jpg" },
+  ]);
+  await seedFolders(["Reference"]);
+
+  await page.goto(galleryUrl());
+  await page.getByRole("button", { name: "Organize Inbox" }).click();
+  await expect(page.getByRole("dialog", { name: "Organize Inbox" }).getByText(first.originalUrl)).toBeVisible();
+  await page.getByRole("button", { name: "Add folders" }).click();
+  const picker = page.getByRole("dialog", { name: "Add folders" });
+  await picker.getByRole("checkbox", { name: "Reference" }).check();
+  await picker.getByRole("button", { name: "Organize and continue" }).click();
+
+  await expect(page.getByRole("dialog", { name: "Organize Inbox" }).getByText(second.originalUrl)).toBeVisible();
+  await expect(page.getByText("1 Inbox").first()).toBeVisible();
 });

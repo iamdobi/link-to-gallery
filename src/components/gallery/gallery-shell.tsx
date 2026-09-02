@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { FilterSheet } from "./filter-sheet";
 import { FullscreenViewer } from "./fullscreen-viewer";
+import { InboxTriage } from "./inbox-triage";
 import { GalleryToolbar } from "./gallery-toolbar";
 import { BatchActionBar, type ClientBatchAction, type ClientBatchResult } from "./batch-action-bar";
 import { AddUrlDialog } from "./add-url-dialog";
@@ -52,6 +53,7 @@ export function GalleryShell({ initialPage, initialCounts, folders, tags }: Gall
   const [batchSummary, setBatchSummary] = useState<string | null>(null);
   const [activeImageId, setActiveImageId] = useState<string | null>(null);
   const [counts, setCounts] = useState(initialCounts);
+  const [inboxTriageOpen, setInboxTriageOpen] = useState(false);
   const [returnTarget, setReturnTarget] = useState<{ imageId: string; scrollY: number } | null>(null);
   const initialLoad = useRef(true);
   const filterKey = useMemo(() => JSON.stringify({ ...filters, view: undefined }), [filters]);
@@ -147,7 +149,7 @@ export function GalleryShell({ initialPage, initialCounts, folders, tags }: Gall
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
-      <GalleryToolbar counts={counts} mode={mode} onModeChange={changeMode} onOpenAddUrl={() => setAddUrlOpen(true)} onOpenFilters={() => setFiltersOpen(true)} onOpenInboxTriage={() => undefined} onSearchChange={(search) => setFilters({ search })} onViewChange={(view) => setFilters({ view })} search={filters.search} view={filters.view} />
+      <GalleryToolbar counts={counts} mode={mode} onModeChange={changeMode} onOpenAddUrl={() => setAddUrlOpen(true)} onOpenFilters={() => setFiltersOpen(true)} onOpenInboxTriage={() => { setActiveImageId(null); setInboxTriageOpen(true); }} onSearchChange={(search) => setFilters({ search })} onViewChange={(view) => setFilters({ view })} search={filters.search} view={filters.view} />
       <section className={`mx-auto max-w-[1800px] px-4 py-5 sm:px-6 ${mode === "management" ? "pb-24" : ""}`}>
         {mode === "management"
           ? <ManagementGallery images={items} onLoadStatus={updateLoadStatus} onToggleSelection={toggleSelection} selectedIds={selectedIds} view={filters.view} />
@@ -174,6 +176,7 @@ export function GalleryShell({ initialPage, initialCounts, folders, tags }: Gall
         <BatchActionBar apply={applyWithSelection} onConfirmPermanentDelete={() => setPendingTrashAction("permanent_delete")} onConfirmTrash={() => setPendingTrashAction("trash")} onOpenFolders={() => setFolderPickerAction("folder_add")} onOpenTags={() => setTagPickerAction("tag_add")} onRemoveFolders={() => setFolderPickerAction("folder_remove")} onRemoveTags={() => setTagPickerAction("tag_remove")} onSelectionChange={setSelection} selectedIds={selectedIds} trashOnly={filters.trashOnly} />
       </>}
       {activeImageId && mode === "viewer" && <FullscreenViewer imageId={activeImageId} images={items} onDismiss={dismissFullscreen} onNavigate={setActiveImageId} />}
+      <InboxTriage folders={folders} inboxCount={counts.inbox} onAssigned={async () => { await Promise.all([loadPage(null, false), refreshCounts()]); }} onClose={() => setInboxTriageOpen(false)} onCreateTag={createTag} open={inboxTriageOpen} tags={tagOptions} />
     </main>
   );
 }
