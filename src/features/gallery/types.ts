@@ -36,6 +36,11 @@ export type GalleryPage = {
   nextCursor: string | null;
 };
 
+export type GalleryCounts = {
+  active: number;
+  inbox: number;
+};
+
 export type GalleryState = {
   filters: GalleryFilters;
   items: GalleryImage[];

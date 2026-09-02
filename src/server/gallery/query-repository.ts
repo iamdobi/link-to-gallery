@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   defaultGalleryFilters,
   type GalleryFilters,
+  type GalleryCounts,
   type GalleryFolder,
   type GalleryImage,
   type GalleryPage,
@@ -38,6 +39,27 @@ export function buildImageFilter(filters: Partial<GalleryFilters>): string {
   if (value.loadStatus !== "all") rules.push(`${value.loadStatus} image status`);
   if (value.search.trim()) rules.push("URL, note, or tag search");
   return rules.join("; ");
+}
+
+export async function getGalleryCounts(supabase: SupabaseClient, ownerId: string): Promise<GalleryCounts> {
+  const [active, inbox] = await Promise.all([
+    supabase
+      .from("images")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", ownerId)
+      .is("deleted_at", null),
+    supabase
+      .from("images")
+      .select("id,image_folders!left(image_id),image_tags!left(image_id)", { count: "exact", head: true })
+      .eq("owner_id", ownerId)
+      .is("deleted_at", null)
+      .is("image_folders.image_id", null)
+      .is("image_tags.image_id", null),
+  ]);
+  if (active.error) throw new Error(active.error.message);
+  if (inbox.error) throw new Error(inbox.error.message);
+
+  return { active: active.count ?? 0, inbox: inbox.count ?? 0 };
 }
 
 function encodeCursor(cursor: Cursor): string {
